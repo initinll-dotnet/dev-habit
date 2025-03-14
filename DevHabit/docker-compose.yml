@@ -1,34 +1,44 @@
 services:
-  devhabbit.api:
-    image: ${DOCKER_REGISTRY-}devhabbitapi
+  devhabit.api:
+    image: ${DOCKER_REGISTRY-}devhabitapi
     build:
       context: .
-      dockerfile: src/DevHabbit.Api/Dockerfile
+      dockerfile: src/DevHabit.Api/Dockerfile
     ports:
-        - "5000:8080"
-        - "5001:8081"
+      - "5000:8080"
+      - "5001:8081"
     environment:
       # seq
       # - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabbit.seq:5341/ingest/oltp
       # - OTEL_EXPORTER_OLTP_PROTOCOL=http/protobuf
       # Aspire Dashboard
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabbit.aspire-dashboard:18889
-      - OTEL_EXPORTER_OLTP_PROTOCOL=grpc 
+      - OTEL_EXPORTER_OLTP_PROTOCOL=grpc
+ 
+  devhabbit.postgres:
+    image: postgres:17.2
+    environment:
+      POSTGRES_DB: devhabbit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./containers/postgres_data:/var/lib/postgresql/data
   
   devhabbit.seq:
     image: datalust/seq:2024.3 # or latest
     environment:
-        ACCEPT_EULA: "Y"
+      ACCEPT_EULA: "Y"
     volumes:
-        - ./containers/seq_data:/data
+      - ./containers/seq_data:/data
     ports:
-        - "8080:80"
-        - "5341:5341"
+      - "8080:80"
+      - "5341:5341"
    
   devhabbit.aspire-dashboard:
-     image: mcr.microsoft.com/dotnet/aspire-dashboard:9.0
-     environment:
-       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
-     ports:
-       - "18888:18888"
-    
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:9.0
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "18888:18888"
