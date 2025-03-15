@@ -14,6 +14,10 @@ services:
       # Aspire Dashboard
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabbit.aspire-dashboard:18889
       - OTEL_EXPORTER_OLTP_PROTOCOL=grpc
+    depends_on:
+      - devhabbit.postgres
+      - devhabbit.seq
+      - devhabbit.aspire-dashboard
  
   devhabbit.postgres:
     image: postgres:17.2

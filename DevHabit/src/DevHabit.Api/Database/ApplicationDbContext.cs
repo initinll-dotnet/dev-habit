@@ -1,11 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DevHabit.Api.Database.Configurations;
+using DevHabit.Api.Entities;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace DevHabit.Api.Database;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbContextOptions) : DbContext(dbContextOptions)
 {
+    public DbSet<Habit> Habits { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schemas.Application);
+
+        //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new HabitConfiguration());
     }
 }
