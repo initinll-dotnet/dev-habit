@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DevHabit.Api.Migrations.Application
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250315132847_Add_Habits")]
+    [Migration("20250315141715_Add_Habits")]
     partial class Add_Habits
     {
         /// <inheritdoc />
@@ -28,13 +28,10 @@ namespace DevHabit.Api.Migrations.Application
 
             modelBuilder.Entity("DevHabit.Api.Entities.Habit", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<string>("Id")
                         .HasMaxLength(500)
-                        .HasColumnType("integer")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -85,8 +82,8 @@ namespace DevHabit.Api.Migrations.Application
                 {
                     b.OwnsOne("DevHabit.Api.Entities.Frequency", "Frequency", b1 =>
                         {
-                            b1.Property<int>("HabitId")
-                                .HasColumnType("integer")
+                            b1.Property<string>("HabitId")
+                                .HasColumnType("character varying(500)")
                                 .HasColumnName("id");
 
                             b1.Property<int>("TimesPerPeriod")
@@ -108,8 +105,8 @@ namespace DevHabit.Api.Migrations.Application
 
                     b.OwnsOne("DevHabit.Api.Entities.Milestone", "Milestone", b1 =>
                         {
-                            b1.Property<int>("HabitId")
-                                .HasColumnType("integer")
+                            b1.Property<string>("HabitId")
+                                .HasColumnType("character varying(500)")
                                 .HasColumnName("id");
 
                             b1.Property<int>("Current")
@@ -131,8 +128,8 @@ namespace DevHabit.Api.Migrations.Application
 
                     b.OwnsOne("DevHabit.Api.Entities.Target", "Target", b1 =>
                         {
-                            b1.Property<int>("HabitId")
-                                .HasColumnType("integer")
+                            b1.Property<string>("HabitId")
+                                .HasColumnType("character varying(500)")
                                 .HasColumnName("id");
 
                             b1.Property<string>("Unit")
