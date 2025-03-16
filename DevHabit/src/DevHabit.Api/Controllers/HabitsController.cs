@@ -63,4 +63,23 @@ public sealed class HabitsController : ControllerBase
 
         return CreatedAtAction(nameof(GetHabit), new { id = habitDto.Id }, habitDto);
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateHabit(string id, UpdateHabitDto updateHabitDto)
+    {
+        var habit = await dbContext
+            .Habits
+            .Where(habit => habit.Id == id)
+            .FirstOrDefaultAsync();
+
+        if (habit is null)
+        {
+            return NotFound();
+        }
+
+        habit.UpdateFromDto(updateHabitDto);
+        await dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
