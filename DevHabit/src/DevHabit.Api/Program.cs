@@ -16,7 +16,9 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers(options =>
 { 
     options.ReturnHttpNotAcceptable = true;
-}).AddXmlSerializerFormatters();
+})
+.AddNewtonsoftJson()
+.AddXmlSerializerFormatters();
 
 builder.Services.AddOpenApi();
 
