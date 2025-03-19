@@ -8,6 +8,7 @@ namespace DevHabit.Api.Database;
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbContextOptions) : DbContext(dbContextOptions)
 {
     public DbSet<Habit> Habits { get; set; }
+    public DbSet<Tag> Tags { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -15,5 +16,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
         //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         modelBuilder.ApplyConfiguration(new HabitConfiguration());
+        modelBuilder.ApplyConfiguration(new TagConfiguration());
     }
 }
