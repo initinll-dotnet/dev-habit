@@ -112,4 +112,22 @@ public sealed class HabitsController : ControllerBase
         await dbContext.SaveChangesAsync();
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteHabit(string id)
+    {
+        var habit = await dbContext
+            .Habits
+            .FirstOrDefaultAsync(habit => habit.Id == id);
+
+        if (habit is null)
+        {
+            return NotFound();
+        }
+
+        dbContext.Habits.Remove(habit);
+        await dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
