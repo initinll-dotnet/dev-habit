@@ -15,6 +15,10 @@ public sealed class Habit
     public DateTime? CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public DateTime? LastCompletedAtUtc { get; set; }
+    // navigation property - this makes easier to update the collection of tags
+    public List<HabitTag> HabitTags { get; set; }
+    // skip navigation property - this makes querying the tags easier
+    public List<Tag> Tags { get; set; }
 }
 
 public enum HabitType

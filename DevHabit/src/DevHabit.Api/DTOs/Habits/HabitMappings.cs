@@ -4,7 +4,7 @@ namespace DevHabit.Api.DTOs.Habits;
 
 internal static class HabitMappings
 {
-    public static HabitDto ToDto(this Habit habit)
+    public static HabitDto ToHabitDto(this Habit habit)
     {
         var habitDto = new HabitDto
         {
@@ -39,6 +39,44 @@ internal static class HabitMappings
 
         return habitDto;
     }
+
+    public static HabitWithTagsDto ToHabitWithTagsDto(this Habit habit)
+    {
+        var habitWithTagsDto = new HabitWithTagsDto
+        {
+            Id = habit.Id,
+            Name = habit.Name,
+            Description = habit.Description,
+            Type = habit.Type,
+            Frequency = new FrequencyDto
+            {
+                Type = habit.Frequency.Type,
+                TimesPerPeriod = habit.Frequency.TimesPerPeriod
+            },
+            Target = new TargetDto
+            {
+                Value = habit.Target.Value,
+                Unit = habit.Target.Unit
+            },
+            Status = habit.Status,
+            IsArchived = habit.IsArchived,
+            EndDate = habit.EndDate,
+            Milestone = habit.Milestone != null ?
+                new MilestoneDto
+                {
+                    Target = habit.Milestone.Target,
+                    Current = habit.Milestone.Current
+                }
+                : null,
+            CreatedAtUtc = habit.CreatedAtUtc ?? DateTime.UtcNow,
+            UpdatedAtUtc = habit.UpdatedAtUtc,
+            LastCompletedAtUtc = habit.LastCompletedAtUtc,
+            Tags = habit.Tags?.Select(t => t.Name)?.ToArray()
+        };
+
+        return habitWithTagsDto;
+    }
+
     public static Habit ToEntity(this CreateHabitDto createHabitDto)
     {
         var habit = new Habit

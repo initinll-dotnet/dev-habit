@@ -24,7 +24,7 @@ public sealed class HabitsController : ControllerBase
     {
         var habits = await dbContext
             .Habits
-            .Select(habit => habit.ToDto())
+            .Select(habit => habit.ToHabitDto())
             .ToListAsync();
 
         var habitsCollection = new HabitsCollectionDto
@@ -36,12 +36,13 @@ public sealed class HabitsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<HabitDto>> GetHabit(string id)
+    public async Task<ActionResult<HabitWithTagsDto>> GetHabit(string id)
     {
         var habitDto = await dbContext
             .Habits
+            .Include(habit => habit.Tags)
             .Where(habit => habit.Id == id)
-            .Select(habit => habit.ToDto())
+            .Select(habit => habit.ToHabitWithTagsDto())
             .FirstOrDefaultAsync();
 
         if (habitDto is null)
@@ -60,7 +61,7 @@ public sealed class HabitsController : ControllerBase
         dbContext.Habits.Add(habit);
         await dbContext.SaveChangesAsync();
 
-        var habitDto = habit.ToDto();
+        var habitDto = habit.ToHabitDto();
 
         return CreatedAtAction(nameof(GetHabit), new { id = habitDto.Id }, habitDto);
     }
@@ -97,7 +98,7 @@ public sealed class HabitsController : ControllerBase
             return NotFound();
         }
 
-        var habitDto = habit.ToDto();
+        var habitDto = habit.ToHabitDto();
         patchDocument.ApplyTo(habitDto, ModelState);
 
         if (!TryValidateModel(habitDto))
