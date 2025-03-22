@@ -1,4 +1,5 @@
 ﻿using DevHabit.Api.Database;
+using DevHabit.Api.DTOs.Habits;
 using DevHabit.Api.DTOs.Tags;
 using DevHabit.Api.Entities;
 
@@ -54,20 +55,22 @@ public sealed class TagsController(ApplicationDbContext dbContext) : ControllerB
         IValidator<CreateTagDto> validator,
         ProblemDetailsFactory problemDetailsFactory)
     {
+        // global validation exception handler
+        await validator.ValidateAndThrowAsync(createTagDto);
 
-        var validationResult = await validator.ValidateAsync(createTagDto);
+        //var validationResult = await validator.ValidateAsync(createTagDto);
 
-        if (!validationResult.IsValid)
-        {
-            //return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
+        //if (!validationResult.IsValid)
+        //{
+        //    //return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
 
-            var problem = problemDetailsFactory
-                .CreateProblemDetails(HttpContext, StatusCodes.Status400BadRequest);
+        //    var problem = problemDetailsFactory
+        //        .CreateProblemDetails(HttpContext, StatusCodes.Status400BadRequest);
 
-            problem.Extensions.Add("errors", validationResult.ToDictionary());
+        //    problem.Extensions.Add("errors", validationResult.ToDictionary());
 
-            return BadRequest(problem);
-        }
+        //    return BadRequest(problem);
+        //}
 
         Tag tag = createTagDto.ToEntity();
 

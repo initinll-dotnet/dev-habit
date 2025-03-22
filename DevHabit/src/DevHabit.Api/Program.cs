@@ -1,5 +1,6 @@
 using DevHabit.Api.Database;
 using DevHabit.Api.Extensions;
+using DevHabit.Api.Middlewares;
 
 using FluentValidation;
 
@@ -16,7 +17,7 @@ using OpenTelemetry.Trace;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers(options =>
-{ 
+{
     options.ReturnHttpNotAcceptable = true;
 })
 .AddNewtonsoftJson()
@@ -25,13 +26,16 @@ builder.Services.AddControllers(options =>
 // register fluent validation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-builder.Services.AddProblemDetails(options => 
+builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
     {
         context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
     };
 });
+
+builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddOpenApi();
 
@@ -40,7 +44,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options
         .UseNpgsql(
             builder.Configuration.GetConnectionString(name: "Database"),
-            npgsqlOptions => 
+            npgsqlOptions =>
                 npgsqlOptions.MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Application))
         .UseSnakeCaseNamingConvention();
 });
@@ -74,6 +78,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
 
 app.MapControllers();
 

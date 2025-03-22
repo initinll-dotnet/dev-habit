@@ -63,17 +63,19 @@ public sealed class HabitsController : ControllerBase
         IValidator<CreateHabitDto> validator,
         ProblemDetailsFactory problemDetailsFactory)
     {
-        var validationResult = await validator.ValidateAsync(createHabitDto);
+        await validator.ValidateAndThrowAsync(createHabitDto);
 
-        if (!validationResult.IsValid)
-        {
-            var problem = problemDetailsFactory
-                .CreateProblemDetails(HttpContext, StatusCodes.Status400BadRequest);
+        //var validationResult = await validator.ValidateAsync(createHabitDto);
 
-            problem.Extensions.Add("errors", validationResult.ToDictionary());
+        //if (!validationResult.IsValid)
+        //{
+        //    var problem = problemDetailsFactory
+        //        .CreateProblemDetails(HttpContext, StatusCodes.Status400BadRequest);
 
-            return BadRequest(problem);
-        }
+        //    problem.Extensions.Add("errors", validationResult.ToDictionary());
+
+        //    return BadRequest(problem);
+        //}
 
         var habit = createHabitDto.ToEntity();
 
