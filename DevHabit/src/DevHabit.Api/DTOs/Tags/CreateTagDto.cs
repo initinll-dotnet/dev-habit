@@ -1,4 +1,6 @@
-﻿namespace DevHabit.Api.DTOs.Tags;
+﻿using FluentValidation;
+
+namespace DevHabit.Api.DTOs.Tags;
 
 public sealed record CreateTagDto
 {

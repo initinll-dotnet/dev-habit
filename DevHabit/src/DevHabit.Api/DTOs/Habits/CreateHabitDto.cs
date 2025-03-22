@@ -1,5 +1,7 @@
 ﻿using DevHabit.Api.Entities;
 
+using FluentValidation;
+
 namespace DevHabit.Api.DTOs.Habits;
 
 public sealed record CreateHabitDto
@@ -8,7 +10,7 @@ public sealed record CreateHabitDto
     public string? Description { get; init; }
     public required HabitType Type { get; init; }
     public required FrequencyDto Frequency { get; init; }
-    public required TargetDto Target { get; init; }    
+    public required TargetDto Target { get; init; }
     public DateTime? EndDate { get; init; }
     public MilestoneDto? Milestone { get; init; }
 }
