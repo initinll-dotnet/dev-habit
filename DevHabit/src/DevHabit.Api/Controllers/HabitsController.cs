@@ -1,6 +1,7 @@
 ﻿using DevHabit.Api.Database;
 using DevHabit.Api.DTOs.Habits;
 using DevHabit.Api.DTOs.Tags;
+using DevHabit.Api.Entities;
 
 using FluentValidation;
 
@@ -24,10 +25,17 @@ public sealed class HabitsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<HabitsCollectionDto>> GetHabits()
+    public async Task<ActionResult<HabitsCollectionDto>> GetHabits([FromQuery] HabitsQueryParameters query)
     {
-        var habits = await dbContext
-            .Habits
+        query.Search ??= query.Search?.Trim().ToLower();
+
+        var habits = await dbContext.Habits
+            .Where(habit =>
+                    query.Search == null ||
+                    habit.Name.ToLower().Contains(query.Search) ||
+                    habit.Description != null && habit.Description.ToLower().Contains(query.Search))
+            .Where(habit => query.Type == null || habit.Type == query.Type)
+            .Where(habit => query.Status == null || habit.Status == query.Status)
             .Select(habit => habit.ToHabitDto())
             .ToListAsync();
 
