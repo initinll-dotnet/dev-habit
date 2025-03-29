@@ -1,6 +1,9 @@
 using DevHabit.Api.Database;
+using DevHabit.Api.DTOs.Habits;
+using DevHabit.Api.Entities;
 using DevHabit.Api.Extensions;
 using DevHabit.Api.Middlewares;
+using DevHabit.Api.Services.Sorting;
 
 using FluentValidation;
 
@@ -67,6 +70,10 @@ builder.Logging.AddOpenTelemetry(options =>
     options.IncludeScopes = true;
     options.IncludeFormattedMessage = true;
 });
+
+builder.Services.AddTransient<SortMappingProvider>();
+builder.Services.AddSingleton<ISortMappingDefinition, SortMappingDefinition<HabitDto, Habit>>(_ =>
+    HabitMappings.SortMapping);
 
 WebApplication app = builder.Build();
 

@@ -2,6 +2,7 @@
 using DevHabit.Api.DTOs.Habits;
 using DevHabit.Api.DTOs.Tags;
 using DevHabit.Api.Entities;
+using DevHabit.Api.Services.Sorting;
 
 using FluentValidation;
 
@@ -25,9 +26,21 @@ public sealed class HabitsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<HabitsCollectionDto>> GetHabits([FromQuery] HabitsQueryParameters query)
+    public async Task<ActionResult<HabitsCollectionDto>> GetHabits(
+        [FromQuery] HabitsQueryParameters query,
+        SortMappingProvider sortMappingProvider)
     {
+        if (!sortMappingProvider.ValidateMappings<HabitDto, Habit>(query.Sort))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"The provider sort parameter isn't valid: '{query.Sort}'");
+        }
+
         query.Search ??= query.Search?.Trim().ToLower();
+
+        SortMapping[] sortMappings = sortMappingProvider
+            .GetMapping<HabitDto, Habit>(query.Sort ?? string.Empty);
 
         var habits = await dbContext.Habits
             .Where(habit =>
@@ -36,6 +49,7 @@ public sealed class HabitsController : ControllerBase
                     habit.Description != null && habit.Description.ToLower().Contains(query.Search))
             .Where(habit => query.Type == null || habit.Type == query.Type)
             .Where(habit => query.Status == null || habit.Status == query.Status)
+            .ApplySort(query.Sort, sortMappings)
             .Select(habit => habit.ToHabitDto())
             .ToListAsync();
 
