@@ -4,7 +4,7 @@ namespace DevHabit.Api.Services.Sorting;
 
 public sealed class SortMappingProvider(IEnumerable<ISortMappingDefinition> sortMappingDefinitions)
 {
-    public SortMapping[] GetMapping<TSource, TDestination>(string sortField)
+    public SortMapping[] GetMappings<TSource, TDestination>()
     {
         SortMappingDefinition<TSource, TDestination>? sortMappingDefinition = sortMappingDefinitions
             .OfType<SortMappingDefinition<TSource, TDestination>>()
@@ -12,7 +12,8 @@ public sealed class SortMappingProvider(IEnumerable<ISortMappingDefinition> sort
 
         if (sortMappingDefinition is null)
         {
-            throw new InvalidOperationException($"No mapping defined for {typeof(TSource).Name} to {typeof(TDestination).Name}");
+            throw new InvalidOperationException(
+                $"The mapping from '{typeof(TSource).Name}' into'{typeof(TDestination).Name} isn't defined");
         }
 
         return sortMappingDefinition.Mappings;
@@ -31,9 +32,8 @@ public sealed class SortMappingProvider(IEnumerable<ISortMappingDefinition> sort
             .Where(f => !string.IsNullOrWhiteSpace(f))
             .ToList();
 
-        SortMapping[] mappings = GetMapping<TSource, TDestination>(sort);
+        SortMapping[] mapping = GetMappings<TSource, TDestination>();
 
-        return sortFields.All(f => mappings.Any(m => m.SortField.Equals(f, StringComparison.OrdinalIgnoreCase)));
+        return sortFields.All(f => mapping.Any(m => m.SortField.Equals(f, StringComparison.OrdinalIgnoreCase)));
     }
 }
-

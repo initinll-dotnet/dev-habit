@@ -12,10 +12,10 @@ public sealed record HabitWithTagsDto
     public required TargetDto Target { get; init; }
     public required HabitStatus Status { get; init; }
     public required bool IsArchived { get; init; }
-    public DateTime? EndDate { get; init; }
+    public DateOnly? EndDate { get; init; }
     public MilestoneDto? Milestone { get; init; }
     public required DateTime CreatedAtUtc { get; init; }
     public DateTime? UpdatedAtUtc { get; init; }
     public DateTime? LastCompletedAtUtc { get; init; }
-    public required string[] Tags { get; set; }
+    public required string[] Tags { get; init; }
 }

@@ -10,14 +10,13 @@ public sealed class Habit
     public Target Target { get; set; }
     public HabitStatus Status { get; set; }
     public bool IsArchived { get; set; }
-    public DateTime? EndDate { get; set; }
+    public DateOnly? EndDate { get; set; }
     public Milestone? Milestone { get; set; }
-    public DateTime? CreatedAtUtc { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public DateTime? LastCompletedAtUtc { get; set; }
-    // navigation property - this makes easier to update the collection of tags
+
     public List<HabitTag> HabitTags { get; set; }
-    // skip navigation property - this makes querying the tags easier
     public List<Tag> Tags { get; set; }
 }
 
@@ -25,14 +24,14 @@ public enum HabitType
 {
     None = 0,
     Binary = 1,
-    Measurable = 2,
+    Measurable = 2
 }
 
 public enum HabitStatus
 {
     None = 0,
     Ongoing = 1,
-    Completed = 2,
+    Completed = 2
 }
 
 public sealed class Frequency
@@ -46,7 +45,7 @@ public enum FrequencyType
     None = 0,
     Daily = 1,
     Weekly = 2,
-    Monthly = 3,
+    Monthly = 3
 }
 
 public sealed class Target

@@ -6,7 +6,7 @@ internal static class QueryableExtensions
 {
     public static IQueryable<T> ApplySort<T>(
         this IQueryable<T> query,
-        string sort,
+        string? sort,
         SortMapping[] mappings,
         string defaultOrderBy = "Id")
     {
@@ -15,28 +15,25 @@ internal static class QueryableExtensions
             return query.OrderBy(defaultOrderBy);
         }
 
-        var sortFields = sort
-            .Split(',')
+        string[] sortFields = sort.Split(',')
             .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToArray();
 
         var orderByParts = new List<string>();
-
         foreach (string field in sortFields)
         {
             (string sortField, bool isDescending) = ParseSortField(field);
 
-            SortMapping mapping = mappings
-                .First(m => 
-                    m.SortField.Equals(sortField, StringComparison.OrdinalIgnoreCase));
+            SortMapping mapping = mappings.First(m =>
+                m.SortField.Equals(sortField, StringComparison.OrdinalIgnoreCase));
 
             string direction = (isDescending, mapping.Reverse) switch
             {
                 (false, false) => "ASC",
                 (false, true) => "DESC",
                 (true, false) => "DESC",
-                (true, true) => "ASC",
+                (true, true) => "ASC"
             };
 
             orderByParts.Add($"{mapping.PropertyName} {direction}");
@@ -50,13 +47,12 @@ internal static class QueryableExtensions
     private static (string SortField, bool IsDescending) ParseSortField(string field)
     {
         string[] parts = field.Split(' ');
-
         string sortField = parts[0];
-
         bool isDescending = parts.Length > 1 &&
-            parts[1].Equals("desc", StringComparison.OrdinalIgnoreCase);
+                            parts[1].Equals("desc", StringComparison.OrdinalIgnoreCase);
 
         return (sortField, isDescending);
     }
 }
+
 

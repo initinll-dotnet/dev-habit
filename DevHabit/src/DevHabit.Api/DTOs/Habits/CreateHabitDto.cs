@@ -11,6 +11,6 @@ public sealed record CreateHabitDto
     public required HabitType Type { get; init; }
     public required FrequencyDto Frequency { get; init; }
     public required TargetDto Target { get; init; }
-    public DateTime? EndDate { get; init; }
+    public DateOnly? EndDate { get; init; }
     public MilestoneDto? Milestone { get; init; }
 }

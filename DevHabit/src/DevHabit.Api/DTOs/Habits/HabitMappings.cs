@@ -32,9 +32,9 @@ internal static class HabitMappings
         ]
     };
 
-    public static HabitDto ToHabitDto(this Habit habit)
+    public static HabitDto ToDto(this Habit habit)
     {
-        var habitDto = new HabitDto
+        return new HabitDto
         {
             Id = habit.Id,
             Name = habit.Name,
@@ -53,84 +53,45 @@ internal static class HabitMappings
             Status = habit.Status,
             IsArchived = habit.IsArchived,
             EndDate = habit.EndDate,
-            Milestone = habit.Milestone != null ?
-                new MilestoneDto
+            Milestone = habit.Milestone == null
+                ? null
+                : new MilestoneDto
                 {
                     Target = habit.Milestone.Target,
                     Current = habit.Milestone.Current
-                }
-                : null,
-            CreatedAtUtc = habit.CreatedAtUtc ?? DateTime.UtcNow,
+                },
+            CreatedAtUtc = habit.CreatedAtUtc,
             UpdatedAtUtc = habit.UpdatedAtUtc,
             LastCompletedAtUtc = habit.LastCompletedAtUtc
         };
-
-        return habitDto;
     }
 
-    public static HabitWithTagsDto ToHabitWithTagsDto(this Habit habit)
+    public static Habit ToEntity(this CreateHabitDto dto)
     {
-        var habitWithTagsDto = new HabitWithTagsDto
-        {
-            Id = habit.Id,
-            Name = habit.Name,
-            Description = habit.Description,
-            Type = habit.Type,
-            Frequency = new FrequencyDto
-            {
-                Type = habit.Frequency.Type,
-                TimesPerPeriod = habit.Frequency.TimesPerPeriod
-            },
-            Target = new TargetDto
-            {
-                Value = habit.Target.Value,
-                Unit = habit.Target.Unit
-            },
-            Status = habit.Status,
-            IsArchived = habit.IsArchived,
-            EndDate = habit.EndDate,
-            Milestone = habit.Milestone != null ?
-                new MilestoneDto
-                {
-                    Target = habit.Milestone.Target,
-                    Current = habit.Milestone.Current
-                }
-                : null,
-            CreatedAtUtc = habit.CreatedAtUtc ?? DateTime.UtcNow,
-            UpdatedAtUtc = habit.UpdatedAtUtc,
-            LastCompletedAtUtc = habit.LastCompletedAtUtc,
-            Tags = habit.Tags?.Select(t => t.Name)?.ToArray()
-        };
-
-        return habitWithTagsDto;
-    }
-
-    public static Habit ToEntity(this CreateHabitDto createHabitDto)
-    {
-        var habit = new Habit
+        Habit habit = new()
         {
             Id = $"h_{Guid.CreateVersion7()}",
-            Name = createHabitDto.Name,
-            Description = createHabitDto.Description,
-            Type = createHabitDto.Type,
+            Name = dto.Name,
+            Description = dto.Description,
+            Type = dto.Type,
             Frequency = new Frequency
             {
-                Type = createHabitDto.Frequency.Type,
-                TimesPerPeriod = createHabitDto.Frequency.TimesPerPeriod
+                Type = dto.Frequency.Type,
+                TimesPerPeriod = dto.Frequency.TimesPerPeriod
             },
             Target = new Target
             {
-                Value = createHabitDto.Target.Value,
-                Unit = createHabitDto.Target.Unit
+                Value = dto.Target.Value,
+                Unit = dto.Target.Unit
             },
             Status = HabitStatus.Ongoing,
             IsArchived = false,
-            EndDate = createHabitDto.EndDate,
-            Milestone = createHabitDto.Milestone != null ?
-                new Milestone
+            EndDate = dto.EndDate,
+            Milestone = dto.Milestone is not null
+                ? new Milestone
                 {
-                    Target = createHabitDto.Milestone.Target,
-                    Current = 0 // Milestone.Current is always 0 when creating a new habit
+                    Target = dto.Milestone.Target,
+                    Current = 0 // Initialize current progress to 0
                 }
                 : null,
             CreatedAtUtc = DateTime.UtcNow
@@ -139,34 +100,34 @@ internal static class HabitMappings
         return habit;
     }
 
-    public static void UpdateFromDto(this Habit habit, UpdateHabitDto updateHabitDto)
+    public static void UpdateFromDto(this Habit habit, UpdateHabitDto dto)
     {
         // Update basic properties
-        habit.Name = updateHabitDto.Name;
-        habit.Description = updateHabitDto.Description;
-        habit.Type = updateHabitDto.Type;
-        habit.EndDate = updateHabitDto.EndDate;
+        habit.Name = dto.Name;
+        habit.Description = dto.Description;
+        habit.Type = dto.Type;
+        habit.EndDate = dto.EndDate;
 
-        // Update frequency
+        // Update frequency (assuming it's immutable, create new instance)
         habit.Frequency = new Frequency
         {
-            Type = updateHabitDto.Frequency.Type,
-            TimesPerPeriod = updateHabitDto.Frequency.TimesPerPeriod
+            Type = dto.Frequency.Type,
+            TimesPerPeriod = dto.Frequency.TimesPerPeriod
         };
 
         // Update target
         habit.Target = new Target
         {
-            Value = updateHabitDto.Target.Value,
-            Unit = updateHabitDto.Target.Unit
+            Value = dto.Target.Value,
+            Unit = dto.Target.Unit
         };
 
-        // Update milestone
-        if (updateHabitDto.Milestone is not null)
+        // Update milestone if provided
+        if (dto.Milestone != null)
         {
-            habit.Milestone ??= new Milestone();
-            habit.Milestone.Target = updateHabitDto.Milestone.Target;
-            // NOTE: we don't update Milestone.Current from the DTO to preserve progress
+            habit.Milestone ??= new Milestone(); // Create new if doesn't exist
+            habit.Milestone.Target = dto.Milestone.Target;
+            // Note: We don't update Milestone.Current from DTO to preserve progress
         }
 
         habit.UpdatedAtUtc = DateTime.UtcNow;

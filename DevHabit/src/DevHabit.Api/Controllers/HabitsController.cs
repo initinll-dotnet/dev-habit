@@ -3,6 +3,7 @@ using DevHabit.Api.DTOs.Common;
 using DevHabit.Api.DTOs.Habits;
 using DevHabit.Api.DTOs.Tags;
 using DevHabit.Api.Entities;
+using DevHabit.Api.Services;
 using DevHabit.Api.Services.Sorting;
 
 using FluentValidation;
@@ -11,6 +12,8 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+
+using System.Dynamic;
 
 namespace DevHabit.Api.Controllers;
 
@@ -27,93 +30,108 @@ public sealed class HabitsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PaginationResult<HabitDto>>> GetHabits(
+    public async Task<IActionResult> GetHabits(
         [FromQuery] HabitsQueryParameters query,
-        SortMappingProvider sortMappingProvider)
+        SortMappingProvider sortMappingProvider,
+        DataShapingService dataShapingService)
     {
         if (!sortMappingProvider.ValidateMappings<HabitDto, Habit>(query.Sort))
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: $"The provider sort parameter isn't valid: '{query.Sort}'");
+                detail: $"The provided sort parameter isn't valid: '{query.Sort}'");
+        }
+
+        if (!dataShapingService.Validate<HabitDto>(query.Fields))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"The provided data shaping fields aren't valid: '{query.Fields}'");
         }
 
         query.Search ??= query.Search?.Trim().ToLower();
 
-        SortMapping[] sortMappings = sortMappingProvider
-            .GetMapping<HabitDto, Habit>(query.Sort ?? string.Empty);
+        SortMapping[] sortMappings = sortMappingProvider.GetMappings<HabitDto, Habit>();
 
-        IQueryable<HabitDto>? habitsQuery = dbContext.Habits
-            .Where(habit =>
-                    query.Search == null ||
-                    habit.Name.ToLower().Contains(query.Search) ||
-                    habit.Description != null && habit.Description.ToLower().Contains(query.Search))
-            .Where(habit => query.Type == null || habit.Type == query.Type)
-            .Where(habit => query.Status == null || habit.Status == query.Status)
+        IQueryable<HabitDto> habitsQuery = dbContext
+            .Habits
+            .Where(h => query.Search == null ||
+                        h.Name.ToLower().Contains(query.Search) ||
+                        h.Description != null && h.Description.ToLower().Contains(query.Search))
+            .Where(h => query.Type == null || h.Type == query.Type)
+            .Where(h => query.Status == null || h.Status == query.Status)
             .ApplySort(query.Sort, sortMappings)
-            .Select(habit => habit.ToHabitDto());
+            .Select(HabitQueries.ProjectToDto());
 
-        var paginationResult = await PaginationResult<HabitDto>
-            .CreateAsync(habitsQuery, query.Page, query.PageSize);
+        int totalCount = await habitsQuery.CountAsync();
+
+        List<HabitDto> habits = await habitsQuery
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        var paginationResult = new PaginationResult<ExpandoObject>
+        {
+            Items = dataShapingService.ShapeCollectionData(habits, query.Fields),
+            Page = query.Page,
+            PageSize = query.PageSize,
+            TotalCount = totalCount
+        };
 
         return Ok(paginationResult);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<HabitWithTagsDto>> GetHabit(string id)
+    public async Task<IActionResult> GetHabit(
+        string id,
+        string? fields,
+        DataShapingService dataShapingService)
     {
-        var habitDto = await dbContext
+        if (!dataShapingService.Validate<HabitWithTagsDto>(fields))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"The provided data shaping fields aren't valid: '{fields}'");
+        }
+
+        HabitWithTagsDto? habit = await dbContext
             .Habits
-            .Include(habit => habit.Tags)
-            .Where(habit => habit.Id == id)
-            .Select(habit => habit.ToHabitWithTagsDto())
+            .Where(h => h.Id == id)
+            .Select(HabitQueries.ProjectToDtoWithTags())
             .FirstOrDefaultAsync();
 
-        if (habitDto is null)
+        if (habit is null)
         {
             return NotFound();
         }
 
-        return Ok(habitDto);
+        ExpandoObject shapedHabitDto = dataShapingService.ShapeData(habit, fields);
+
+        return Ok(shapedHabitDto);
     }
 
     [HttpPost]
     public async Task<ActionResult<HabitDto>> CreateHabit(
         CreateHabitDto createHabitDto,
-        IValidator<CreateHabitDto> validator,
-        ProblemDetailsFactory problemDetailsFactory)
+        IValidator<CreateHabitDto> validator)
     {
         await validator.ValidateAndThrowAsync(createHabitDto);
 
-        //var validationResult = await validator.ValidateAsync(createHabitDto);
-
-        //if (!validationResult.IsValid)
-        //{
-        //    var problem = problemDetailsFactory
-        //        .CreateProblemDetails(HttpContext, StatusCodes.Status400BadRequest);
-
-        //    problem.Extensions.Add("errors", validationResult.ToDictionary());
-
-        //    return BadRequest(problem);
-        //}
-
-        var habit = createHabitDto.ToEntity();
+        Habit habit = createHabitDto.ToEntity();
 
         dbContext.Habits.Add(habit);
+
         await dbContext.SaveChangesAsync();
 
-        var habitDto = habit.ToHabitDto();
+        HabitDto habitDto = habit.ToDto();
 
         return CreatedAtAction(nameof(GetHabit), new { id = habitDto.Id }, habitDto);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateHabit(string id, UpdateHabitDto updateHabitDto)
+    public async Task<ActionResult> UpdateHabit(string id, UpdateHabitDto updateHabitDto)
     {
-        var habit = await dbContext
-            .Habits
-            .Where(habit => habit.Id == id)
-            .FirstOrDefaultAsync();
+        Habit? habit = await dbContext.Habits.FirstOrDefaultAsync(h => h.Id == id);
 
         if (habit is null)
         {
@@ -121,25 +139,24 @@ public sealed class HabitsController : ControllerBase
         }
 
         habit.UpdateFromDto(updateHabitDto);
+
         await dbContext.SaveChangesAsync();
 
         return NoContent();
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> PatchHabit(string id, JsonPatchDocument<HabitDto> patchDocument)
+    public async Task<ActionResult> PatchHabit(string id, JsonPatchDocument<HabitDto> patchDocument)
     {
-        var habit = await dbContext
-            .Habits
-            .Where(habit => habit.Id == id)
-            .FirstOrDefaultAsync();
+        Habit? habit = await dbContext.Habits.FirstOrDefaultAsync(h => h.Id == id);
 
         if (habit is null)
         {
             return NotFound();
         }
 
-        var habitDto = habit.ToHabitDto();
+        HabitDto habitDto = habit.ToDto();
+
         patchDocument.ApplyTo(habitDto, ModelState);
 
         if (!TryValidateModel(habitDto))
@@ -152,15 +169,14 @@ public sealed class HabitsController : ControllerBase
         habit.UpdatedAtUtc = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
+
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteHabit(string id)
+    public async Task<ActionResult> DeleteHabit(string id)
     {
-        var habit = await dbContext
-            .Habits
-            .FirstOrDefaultAsync(habit => habit.Id == id);
+        Habit? habit = await dbContext.Habits.FirstOrDefaultAsync(h => h.Id == id);
 
         if (habit is null)
         {
@@ -168,6 +184,7 @@ public sealed class HabitsController : ControllerBase
         }
 
         dbContext.Habits.Remove(habit);
+
         await dbContext.SaveChangesAsync();
 
         return NoContent();
