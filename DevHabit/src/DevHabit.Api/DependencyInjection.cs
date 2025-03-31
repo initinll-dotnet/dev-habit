@@ -1,4 +1,6 @@
-﻿using DevHabit.Api.Database;
+﻿using Asp.Versioning;
+
+using DevHabit.Api.Database;
 using DevHabit.Api.DTOs.Habits;
 using DevHabit.Api.Entities;
 using DevHabit.Api.Middlewares;
@@ -7,6 +9,8 @@ using DevHabit.Api.Services.Sorting;
 
 using FluentValidation;
 
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -23,15 +27,46 @@ namespace DevHabit.Api;
 
 public static class DependencyInjection
 {
-    public static WebApplicationBuilder AddControllers(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddApiServices(this WebApplicationBuilder builder)
     {
-        builder.Services.AddControllers(options =>
-        {
-            options.ReturnHttpNotAcceptable = true;
-        })
-        .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver =
-            new CamelCasePropertyNamesContractResolver())
-        .AddXmlSerializerFormatters();
+        builder.Services
+            .AddControllers(options =>
+            {
+                options.ReturnHttpNotAcceptable = true;
+            })
+            .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver =
+                new CamelCasePropertyNamesContractResolver())
+            .AddXmlSerializerFormatters();
+
+        builder.Services
+            .Configure<MvcOptions>(options =>
+            {
+                NewtonsoftJsonOutputFormatter formatter = options.OutputFormatters
+                    .OfType<NewtonsoftJsonOutputFormatter>()
+                    .First();
+
+                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV1);
+                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV2);
+                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJson);
+                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV1);
+                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV2);
+            });
+
+        builder.Services
+            .AddApiVersioning(options =>
+            {
+                options.DefaultApiVersion = new ApiVersion(1.0);
+                options.AssumeDefaultVersionWhenUnspecified = true;
+                options.ReportApiVersions = true;
+                options.ApiVersionSelector = new DefaultApiVersionSelector(options);
+
+                options.ApiVersionReader = ApiVersionReader.Combine(
+                    new MediaTypeApiVersionReader(),
+                    new MediaTypeApiVersionReaderBuilder()
+                        .Template("application/vnd.dev-habit.hateoas.{version}+json")
+                        .Build());
+            })
+            .AddMvc();
 
         builder.Services.AddOpenApi();
 
@@ -47,7 +82,6 @@ public static class DependencyInjection
                 context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
             };
         });
-
         builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -57,14 +91,12 @@ public static class DependencyInjection
     public static WebApplicationBuilder AddDatabase(this WebApplicationBuilder builder)
     {
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        {
             options
                 .UseNpgsql(
-                    builder.Configuration.GetConnectionString(name: "Database"),
-                    npgsqlOptions =>
-                        npgsqlOptions.MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Application))
-                .UseSnakeCaseNamingConvention();
-        });
+                    builder.Configuration.GetConnectionString("Database"),
+                    npgsqlOptions => npgsqlOptions
+                        .MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Application))
+                .UseSnakeCaseNamingConvention());
 
         return builder;
     }
@@ -72,8 +104,7 @@ public static class DependencyInjection
     public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
     {
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource =>
-                resource.AddService(builder.Environment.ApplicationName))
+            .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
             .WithTracing(tracing => tracing
                 .AddHttpClientInstrumentation()
                 .AddAspNetCoreInstrumentation()
@@ -81,8 +112,7 @@ public static class DependencyInjection
             .WithMetrics(metrics => metrics
                 .AddHttpClientInstrumentation()
                 .AddAspNetCoreInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddNpgsqlInstrumentation())
+                .AddRuntimeInstrumentation())
             .UseOtlpExporter();
 
         builder.Logging.AddOpenTelemetry(options =>
@@ -96,7 +126,6 @@ public static class DependencyInjection
 
     public static WebApplicationBuilder AddApplicationServices(this WebApplicationBuilder builder)
     {
-        // register fluent validation
         builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
         builder.Services.AddTransient<SortMappingProvider>();
@@ -104,6 +133,9 @@ public static class DependencyInjection
             HabitMappings.SortMapping);
 
         builder.Services.AddTransient<DataShapingService>();
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddTransient<LinkService>();
 
         return builder;
     }
