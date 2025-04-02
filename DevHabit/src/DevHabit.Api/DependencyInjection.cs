@@ -29,28 +29,26 @@ public static class DependencyInjection
 {
     public static WebApplicationBuilder AddApiServices(this WebApplicationBuilder builder)
     {
-        builder.Services
-            .AddControllers(options =>
-            {
-                options.ReturnHttpNotAcceptable = true;
-            })
+        builder.Services.AddControllers(options =>
+        {
+            options.ReturnHttpNotAcceptable = true;
+        })
             .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver =
                 new CamelCasePropertyNamesContractResolver())
             .AddXmlSerializerFormatters();
 
-        builder.Services
-            .Configure<MvcOptions>(options =>
-            {
-                NewtonsoftJsonOutputFormatter formatter = options.OutputFormatters
-                    .OfType<NewtonsoftJsonOutputFormatter>()
-                    .First();
+        builder.Services.Configure<MvcOptions>(options =>
+        {
+            NewtonsoftJsonOutputFormatter formatter = options.OutputFormatters
+                .OfType<NewtonsoftJsonOutputFormatter>()
+                .First();
 
-                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV1);
-                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV2);
-                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJson);
-                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV1);
-                formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV2);
-            });
+            formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV1);
+            formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.JsonV2);
+            formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJson);
+            formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV1);
+            formatter.SupportedMediaTypes.Add(CustomMediaTypeNames.Application.HateoasJsonV2);
+        });
 
         builder.Services
             .AddApiVersioning(options =>
