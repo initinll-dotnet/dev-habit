@@ -1,23 +1,5 @@
 using DevHabit.Api;
-using DevHabit.Api.Database;
-using DevHabit.Api.DTOs.Habits;
-using DevHabit.Api.Entities;
 using DevHabit.Api.Extensions;
-using DevHabit.Api.Middlewares;
-using DevHabit.Api.Services;
-using DevHabit.Api.Services.Sorting;
-
-using FluentValidation;
-
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Migrations;
-
-using Npgsql;
-
-using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +8,8 @@ builder
     .AddErrorHandling()
     .AddDatabase()
     .AddObservability()
-    .AddApplicationServices();
+    .AddApplicationServices()
+    .AddAuthenticationServices();
 
 WebApplication app = builder.Build();
 
@@ -35,11 +18,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
     await app.ApplyMigrationsAsync();
+
+    await app.SeedInitialDataAsync();
 }
 
 app.UseHttpsRedirection();
 
 app.UseExceptionHandler();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
