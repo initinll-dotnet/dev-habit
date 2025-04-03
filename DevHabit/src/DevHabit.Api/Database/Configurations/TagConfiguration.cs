@@ -9,14 +9,19 @@ public sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
 {
     public void Configure(EntityTypeBuilder<Tag> builder)
     {
-        builder.HasKey(tag => tag.Id);
+        builder.HasKey(t => t.Id);
 
-        builder.Property(tag => tag.Id).HasMaxLength(500);
+        builder.Property(t => t.Id).HasMaxLength(500);
+        builder.Property(t => t.UserId).HasMaxLength(500);
 
-        builder.Property(tag => tag.Name).HasMaxLength(500).IsRequired();
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(50);
 
-        builder.Property(tag => tag.Description).HasMaxLength(500);
+        builder.Property(t => t.Description).HasMaxLength(500);
 
-        builder.HasIndex(tag => new { tag.Name }).IsUnique();
+        builder.HasIndex(t => new { t.UserId, t.Name }).IsUnique();
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(t => t.UserId);
     }
 }
